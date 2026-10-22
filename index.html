@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<!--
+  Juego autónomo: HTML, CSS y JavaScript en este archivo.
+  Para GitHub Pages: sube index.html a la raíz del repositorio y elige
+  Settings > Pages > Deploy from a branch > main > /(root) > Save.
+  Para editar las tarjetas, busca el objeto SERVICES al final del archivo.
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f9">
+  <meta name="description" content="Juego de 16 parejas sobre servicios de computación, almacenamiento y bases de datos de AWS. Incluye modos Relacionar y Memoria y partidas por categoría.">
+  <title>Parejas AWS · Computación, almacenamiento y bases de datos</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172331;
+      --muted: #536273;
+      --canvas: #f6f7f9;
+      --line: #d7dee5;
+      --orange: #ea8500;
+      --orange-dark: #974d00;
+      --orange-pale: #fff5e6;
+      --green: #17653d;
+      --green-pale: #eef8f1;
+      --red: #a83035;
+      --red-pale: #fff0f0;
+      --radius: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); }
+    button, input { font: inherit; }
+    button { touch-action: manipulation; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, a:focus-visible, summary:focus-visible {
+      outline: 3px solid #2563ad;
+      outline-offset: 4px;
+    }
+    button:disabled { cursor: default; }
+    [hidden] { display: none !important; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+      white-space: nowrap; border: 0;
+    }
+    .skip-link {
+      position: absolute; top: -80px; left: 20px; z-index: 10;
+      background: var(--ink); color: white; padding: 12px 18px; border-radius: 8px;
+    }
+    .skip-link:focus { top: 12px; }
+    .topbar { background: #fff; border-bottom: 1px solid var(--line); }
+    .topbar-inner {
+      max-width: 1192px; margin: auto; padding: 20px 28px;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 750; }
+    .brand-mark {
+      width: 36px; height: 36px; display: grid; place-items: center;
+      background: var(--orange-pale); color: var(--orange-dark); border-radius: 10px;
+    }
+    .brand-mark svg { width: 23px; height: 23px; }
+    .topbar-note { color: var(--muted); font-size: 13px; }
+    main { max-width: 1192px; margin: 0 auto; padding: 36px 28px 40px; }
+    .eyebrow {
+      font-size: 12px; font-weight: 750; letter-spacing: .13em;
+      text-transform: uppercase; color: var(--orange-dark); margin: 0 0 10px;
+    }
+    h1 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -.04em; line-height: 1.12; margin: 0; }
+    .intro { font-size: 17px; line-height: 1.6; color: var(--muted); margin: 13px 0 0; }
+    .hero { display: flex; justify-content: space-between; align-items: end; gap: 22px; }
+    .round-label {
+      display: flex; align-items: center; gap: 9px; border: 1px solid var(--line);
+      background: white; padding: 10px 14px; border-radius: 30px; white-space: nowrap;
+      color: var(--muted); font-size: 13px;
+    }
+    .round-label span { width: 7px; height: 7px; background: var(--orange); border-radius: 100%; }
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      margin: 27px 0 22px; flex-wrap: wrap;
+    }
+    .mode-control { display: flex; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: #e9edf1; }
+    .mode-button {
+      background: transparent; border: 0; border-radius: 8px; color: var(--muted);
+      font-size: 14px; font-weight: 650; padding: 10px 18px; cursor: pointer;
+    }
+    .mode-button[aria-pressed="true"] { color: var(--ink); background: #fff; box-shadow: 0 1px 4px #17233115; }
+    .mode-button:hover { color: var(--ink); }
+    .action-group { display: flex; gap: 10px; }
+    .category-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: -6px 0 22px; }
+    .category-label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+    .category-button { font: inherit; font-size: 12px; font-weight: 650; padding: 8px 13px; min-height: 38px; border: 1px solid var(--line); border-radius: 30px; background: white; color: var(--muted); cursor: pointer; }
+    .category-button[aria-pressed="true"] { color: white; background: var(--ink); border-color: var(--ink); }
+    .category-button:not([aria-pressed="true"]):hover { border-color: #8998a7; color: var(--ink); }
+    .button {
+      border: 1px solid var(--line); color: var(--ink); background: #fff;
+      border-radius: 10px; min-height: 44px; padding: 10px 16px; cursor: pointer;
+      font-size: 14px; font-weight: 650; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .button:hover { background: #f0f3f6; border-color: #aebac6; }
+    .button svg { width: 17px; height: 17px; flex: 0 0 auto; }
+    .button:disabled { opacity: .5; }
+    .button-primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .button-primary:hover { background: #2b3d51; border-color: #2b3d51; }
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+      border: 1px solid var(--line); background: #fff; border-radius: 14px; overflow: hidden;
+    }
+    .stat { padding: 17px 24px; position: relative; }
+    .stat + .stat::before { content: ""; position: absolute; left: 0; top: 20px; bottom: 20px; border-left: 1px solid var(--line); }
+    .stat dt { margin: 0 0 5px; font-size: 12px; color: var(--muted); font-weight: 600; }
+    .stat dd { margin: 0; font-size: 26px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+    .stat dd small { font-size: 15px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+    .stat-points dd { color: var(--orange-dark); }
+    .progress-track { height: 4px; background: #e4e9ee; border-radius: 2px; margin: 12px 0 0; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0; background: var(--orange); transition: width .3s ease; }
+    .instructions {
+      color: var(--muted); margin: 22px 0 18px; font-size: 14px; line-height: 1.55;
+    }
+    .instructions strong { color: var(--ink); }
+    .board { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.4fr); gap: 28px; }
+    .column-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+    .column-title h2 { font-size: 14px; margin: 0; font-weight: 750; }
+    .column-title span { font-size: 12px; color: var(--muted); }
+    .card-list { display: grid; gap: 12px; }
+    .services-column { position: sticky; top: 18px; align-self: start; }
+    #service-list {
+      grid-template-columns: 1fr 1fr;
+      max-height: calc(100vh - 260px);
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      padding: 5px;
+      margin: -5px;
+      scrollbar-width: thin;
+    }
+    #service-list .card { min-height: 126px; padding: 18px; }
+    #service-list .card.is-selected, #service-list .card.is-wrong { padding: 17px; }
+    #service-list .service-name { font-size: 21px; }
+    #service-list .service-long { font-size: 11px; }
+    .mobile-label { display: none; }
+    .card {
+      border: 1px solid #cbd4de; border-radius: 14px; background: #fff;
+      color: var(--ink); min-height: 146px; padding: 20px 24px;
+      display: flex; align-items: center; width: 100%; text-align: left;
+      cursor: pointer; position: relative;
+      box-shadow: 0 2px 3px #17233104;
+      transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    .card:not(:disabled):hover { border-color: #8798a9; box-shadow: 0 5px 14px #17233109; transform: translateY(-1px); }
+    .card.is-selected { border: 2px solid var(--orange); padding: 19px 23px; background: var(--orange-pale); box-shadow: 0 0 0 3px #ea850014; }
+    .card.is-matched { border-color: #80b695; background: var(--green-pale); box-shadow: none; }
+    .card.is-wrong { border: 2px solid #cf7478; padding: 19px 23px; background: var(--red-pale); }
+    .card.is-matched::after { content: "✓"; position: absolute; right: 16px; top: 14px; font-weight: 800; font-size: 18px; color: var(--green); }
+    .service-content { display: block; padding-right: 10px; }
+    .service-name { display: block; font-size: 24px; letter-spacing: -.035em; font-weight: 750; margin-bottom: 7px; }
+    .service-long { display: block; font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 270px; }
+    .service-match { display: block; font-size: 12px; color: var(--green); font-weight: 700; margin-top: 8px; }
+    .definition-content { display: block; }
+    .definition-text { display: block; font-size: 16px; line-height: 1.58; }
+    .definition-match { display: block; font-size: 12px; color: var(--green); font-weight: 750; margin-bottom: 5px; }
+    .concealed { display: flex; align-items: center; gap: 15px; color: var(--muted); width: 100%; }
+    .concealed-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; border: 1px dashed #aebdca; flex: 0 0 auto; font-size: 21px; font-weight: 600; }
+    .concealed strong { display: block; font-size: 15px; font-weight: 650; color: var(--ink); }
+    .concealed small { display: block; font-size: 12px; margin-top: 4px; }
+    .card.is-concealed { background: repeating-linear-gradient(135deg, #fff, #fff 9px, #f8fafc 9px, #f8fafc 10px); }
+    .feedback {
+      display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line);
+      background: #fff; color: var(--muted); border-radius: 12px; padding: 16px 20px;
+      margin: 20px 0 0; font-size: 14px; line-height: 1.55; min-height: 58px;
+    }
+    .services-column .feedback { flex-wrap: wrap; margin-top: 14px; font-size: 13px; padding: 13px 15px; }
+    .services-column #feedback-text { flex: 1; min-width: 140px; }
+    #continue-button { margin-left: auto; flex: 0 0 auto; align-self: center; }
+    .feedback-icon { font-weight: 800; color: var(--ink); flex: 0 0 auto; }
+    .feedback[data-tone="success"] { color: var(--green); background: var(--green-pale); border-color: #a8ccb6; }
+    .feedback[data-tone="error"] { color: var(--red); background: var(--red-pale); border-color: #e0b5b7; }
+    .feedback[data-tone="hint"] { color: #7c4606; background: var(--orange-pale); border-color: #f1d29c; }
+    .feedback[data-tone="success"] .feedback-icon, .feedback[data-tone="error"] .feedback-icon, .feedback[data-tone="hint"] .feedback-icon { color: inherit; }
+    .scoring { margin: 13px 0 0; font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .scoring span { white-space: nowrap; }
+    .hint-count { color: var(--ink); font-weight: 600; }
+    .result {
+      margin-top: 26px; padding: 30px; background: #fff; border: 1px solid #a7c6b5;
+      border-top: 4px solid var(--green); border-radius: var(--radius);
+    }
+    .result:focus { outline: none; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .result .eyebrow { color: var(--green); }
+    .result h2 { font-size: 28px; letter-spacing: -.03em; margin: 0; }
+    .result-summary { margin: 12px 0 22px; color: var(--muted); line-height: 1.6; font-size: 15px; }
+    .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .review-card { border: 1px solid var(--line); padding: 17px 19px; border-radius: 12px; }
+    .review-card h3 { margin: 0 0 7px; font-size: 16px; }
+    .review-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .sources { margin: 27px 0 0; font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .sources summary { cursor: pointer; width: fit-content; border-radius: 3px; }
+    .sources p { margin: 9px 0 5px; }
+    .sources ul { margin: 6px 0 0; padding-left: 18px; }
+    .sources a { color: #345b81; text-underline-offset: 3px; }
+    .footer { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); margin-top: 26px; padding-top: 18px; font-size: 11px; color: var(--muted); }
+    noscript { display: block; padding: 20px; border: 1px solid var(--red); border-radius: 12px; background: var(--red-pale); margin-bottom: 20px; }
+    @media (max-width: 920px), (max-height: 760px) {
+      .topbar-inner { padding: 16px 20px; }
+      main { padding: 27px 20px 30px; }
+      .hero { display: block; }
+      .round-label { display: none; }
+      .toolbar { gap: 12px; margin-top: 22px; }
+      .mode-control { flex-grow: 1; }
+      .mode-button { flex: 1; }
+      .action-group { flex-grow: 1; }
+      .action-group .button { flex: 1; }
+      .stat { padding: 14px 13px; }
+      .stat dd { font-size: 23px; }
+      .stat dt { font-size: 11px; }
+      .stat dd small { font-size: 13px; }
+      .board { display: block; }
+      .services-column { top: 0; z-index: 2; background: var(--canvas); padding: 12px 0 15px; margin-top: -12px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+      #service-list { display: flex; max-height: none; overflow-x: auto; overflow-y: hidden; padding: 4px 4px 10px; margin: -4px; gap: 9px; scroll-snap-type: x proximity; }
+      #service-list .card { min-width: 146px; width: 146px; min-height: 108px; padding: 14px; flex: 0 0 auto; scroll-snap-align: start; }
+      #service-list .card.is-selected, #service-list .card.is-wrong { padding: 13px; }
+      #service-list .service-name { font-size: 18px; }
+      #service-list .service-long { font-size: 10px; }
+      .mobile-label { display: inline !important; }
+      .category-label { width: 100%; }
+      .category-control { gap: 6px; }
+      .category-button { font-size: 11px; padding: 8px 11px; }
+      #continue-button { margin-left: 0; }
+      .feedback { flex-wrap: wrap; }
+      #feedback-text { flex: 1; min-width: 200px; }
+      .card { min-height: 135px; padding: 18px; border-radius: 12px; }
+      .card.is-selected, .card.is-wrong { padding: 17px; }
+      .service-name { font-size: 20px; line-height: 1.2; }
+      .service-long { font-size: 11px; overflow-wrap: anywhere; }
+      .definition-text { font-size: 14px; line-height: 1.5; }
+      .column-title span { display: none; }
+      .column-title h2 { font-size: 13px; }
+      .card.is-matched::after { right: 10px; top: 8px; font-size: 15px; }
+      .service-content { padding-right: 0; }
+      .concealed { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .concealed strong { font-size: 13px; }
+      .feedback { padding: 14px 16px; }
+      .result { padding: 23px 20px; }
+      .result-header { align-items: flex-start; flex-direction: column; gap: 15px; }
+      .result h2 { font-size: 25px; }
+      .review-grid { grid-template-columns: 1fr; }
+      .topbar-note { font-size: 11px; }
+      .brand { font-size: 14px; }
+      .footer { flex-direction: column; gap: 6px; }
+    }
+    @media (max-width: 390px) {
+      main { padding-left: 14px; padding-right: 14px; }
+      .topbar-inner { padding-left: 14px; padding-right: 14px; }
+      .topbar-note { display: none; }
+      .stat { padding: 13px 10px; }
+      .stat dd { font-size: 20px; }
+      .board { gap: 9px; }
+      .card { padding: 16px; min-height: 138px; }
+      .card.is-selected, .card.is-wrong { padding: 15px; }
+      .definition-text { font-size: 13px; }
+      .service-name { font-size: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+      .card:not(:disabled):hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#game-board">Ir al juego</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg></span>
+        Parejas en la nube
+      </div>
+      <span class="topbar-note">Aprende jugando · AWS</span>
+    </div>
+  </header>
+  <main>
+    <noscript>Este juego necesita JavaScript. Actívalo en el navegador y vuelve a abrir el archivo.</noscript>
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Computación, almacenamiento y bases de datos</p>
+        <h1 id="page-title">Empareja los servicios de AWS.</h1>
+        <p class="intro">Relaciona cada servicio con su definición y descubre qué lo hace diferente.</p>
+      </div>
+      <div class="round-label"><span aria-hidden="true"></span><span id="round-label" style="width:auto;height:auto;background:none;border-radius:0">16 parejas · sin límite de tiempo</span></div>
+    </section>
+
+    <div class="toolbar">
+      <div class="mode-control" role="group" aria-label="Modo de juego. Cambiar el modo inicia una partida nueva.">
+        <button type="button" class="mode-button" id="mode-match" data-mode="match" aria-pressed="true">Relacionar</button>
+        <button type="button" class="mode-button" id="mode-memory" data-mode="memory" aria-pressed="false">Memoria</button>
+      </div>
+      <div class="action-group">
+        <button type="button" class="button" id="hint-button" title="Selecciona un servicio para pedir una pista. Cada pista nueva resta 15 puntos.">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 16c0-3-3-3-3-7a7 7 0 1 1 14 0c0 4-3 4-3 7M9 19h6M10 22h4M8 16h8"/></svg>
+          Pista
+        </button>
+        <button type="button" class="button" id="restart-button">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4v6h6M4 10a8 8 0 1 1 1 8"/></svg>
+          Nueva partida
+        </button>
+      </div>
+    </div>
+
+    <div class="category-control" role="group" aria-label="Servicios de la partida. Cambiar la selección inicia una partida nueva.">
+      <span class="category-label">Jugar con:</span>
+      <button type="button" class="category-button" data-category="all" data-label="Todos" aria-pressed="true">Todos</button>
+      <button type="button" class="category-button" data-category="compute" data-label="Computación" aria-pressed="false">Computación</button>
+      <button type="button" class="category-button" data-category="storage" data-label="Almacenamiento" aria-pressed="false">Almacenamiento</button>
+      <button type="button" class="category-button" data-category="database" data-label="Bases de datos" aria-pressed="false">Bases de datos</button>
+    </div>
+
+    <dl class="stats" aria-label="Marcador">
+      <div class="stat"><dt>Parejas</dt><dd><span id="matched-value">0</span> <small>/ <span id="pairs-total">16</span></small></dd></div>
+      <div class="stat"><dt>Intentos</dt><dd id="attempts-value">0</dd></div>
+      <div class="stat stat-points"><dt>Puntos</dt><dd id="score-value">0</dd></div>
+      <div class="stat"><dt>Tiempo</dt><dd id="time-value">00:00</dd></div>
+    </dl>
+    <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+    <p class="instructions" id="instructions"><strong>Cómo jugar:</strong> pulsa un servicio y su definición, en el orden que prefieras. Puedes cambiar la selección antes de formar la pareja.</p>
+
+    <section class="board" id="game-board" aria-label="Tablero de parejas" aria-describedby="instructions" tabindex="-1">
+      <div class="services-column">
+        <div class="column-title"><h2>Servicios</h2><span>Elige uno</span><span class="mobile-label">Desliza para ver todos →</span></div>
+        <div class="card-list" id="service-list"></div>
+    <div class="feedback" id="feedback" data-tone="neutral" role="status" aria-live="polite" aria-atomic="true">
+      <span class="feedback-icon" id="feedback-icon" aria-hidden="true">↗</span>
+      <span id="feedback-text">Todo preparado. Selecciona una tarjeta para empezar.</span>
+      <button type="button" class="button" id="continue-button" hidden>Continuar</button>
+    </div>
+      </div>
+      <div>
+        <div class="column-title"><h2>Definiciones</h2><span>Encuentra su pareja</span></div>
+        <div class="card-list" id="definition-list"></div>
+      </div>
+    </section>
+
+    <p class="scoring"><span>+100 por pareja</span> · <span>−10 por error</span> · <span>−15 por pista nueva</span> · Puntuación mínima: 0. <span class="hint-count" id="hint-count">Pistas usadas: 0.</span></p>
+
+    <section class="result" id="result" hidden tabindex="-1" aria-labelledby="result-title">
+      <div class="result-header">
+        <div><p class="eyebrow">Reto completado</p><h2 id="result-title">¡Todas las parejas encontradas!</h2></div>
+        <button type="button" class="button button-primary" id="play-again-button">Volver a jugar <span aria-hidden="true">↗</span></button>
+      </div>
+      <p class="result-summary" id="result-summary"></p>
+      <div class="review-grid" id="review-grid"></div>
+    </section>
+
+    <details class="sources">
+      <summary>Sobre las definiciones y sus fuentes</summary>
+      <p>Definiciones resumidas para la actividad. Amazon S3 Glacier reúne clases de almacenamiento de Amazon S3 para archivado; el tiempo de recuperación depende de la clase elegida.</p>
+      <ul id="source-list"></ul>
+    </details>
+    <footer class="footer"><span>Actividad de repaso · Computación, almacenamiento y bases de datos</span><span>Material educativo independiente. AWS es una marca de Amazon.</span></footer>
+  </main>
+  <script>
+    'use strict';
+
+    // CONTENIDO EDITABLE. Cada id debe ser único y permanecer igual en ambos lados.
+    const SERVICES = [
+      {
+        id: 'ec2',
+        category: 'compute',
+        name: 'Amazon EC2',
+        longName: 'Elastic Compute Cloud',
+        definition: 'Capacidad de cómputo ajustable mediante máquinas virtuales en la nube, llamadas instancias. Permite elegir recursos como procesador, memoria y sistema operativo para ejecutar aplicaciones.',
+        hint: 'Piensa en un servidor virtual cuyo sistema operativo y recursos puedes elegir.',
+        explanation: 'EC2 proporciona máquinas virtuales llamadas instancias. Por ejemplo, puedes instalar un servidor web o ejecutar una aplicación en una instancia Linux o Windows.',
+        source: 'https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html'
+      },
+      {
+        id: 'ec2-autoscaling',
+        category: 'compute',
+        name: 'Amazon EC2 Auto Scaling',
+        longName: '',
+        definition: 'Añade o elimina automáticamente instancias EC2 según la demanda y las reglas definidas. Ayuda a mantener la capacidad necesaria y ajustar los recursos de una aplicación.',
+        hint: 'Piensa en aumentar el número de máquinas virtuales cuando llegan más usuarios y reducirlo cuando baja la demanda.',
+        explanation: 'EC2 Auto Scaling ajusta el número de instancias de un grupo. Por ejemplo, puede añadir servidores durante una campaña de ventas y retirarlos al disminuir la demanda.',
+        source: 'https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html'
+      },
+      {
+        id: 'ecs',
+        category: 'compute',
+        name: 'Amazon ECS',
+        longName: 'Elastic Container Service',
+        definition: 'Servicio administrado de orquestación de contenedores de AWS. Permite desplegar, organizar y escalar aplicaciones en contenedores compatibles con Docker mediante tareas y servicios.',
+        hint: 'Busca el orquestador propio de AWS que organiza contenedores en tareas y servicios.',
+        explanation: 'ECS organiza el despliegue y la ejecución de aplicaciones en contenedores mediante tareas y servicios. Puede usar instancias EC2 o capacidad de Fargate.',
+        source: 'https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html'
+      },
+      {
+        id: 'ecr',
+        category: 'compute',
+        name: 'Amazon ECR',
+        longName: 'Elastic Container Registry',
+        definition: 'Registro administrado para almacenar, versionar y distribuir imágenes de contenedores. Permite guardar las imágenes de una aplicación y descargarlas cuando se van a desplegar.',
+        hint: 'Piensa en el repositorio donde guardas las imágenes que después usarán los contenedores.',
+        explanation: 'ECR almacena y distribuye imágenes de contenedores. Por ejemplo, guarda la imagen Docker de una aplicación para que un servicio de ejecución pueda descargarla.',
+        source: 'https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html'
+      },
+      {
+        id: 'beanstalk',
+        category: 'compute',
+        name: 'AWS Elastic Beanstalk',
+        longName: '',
+        definition: 'Servicio para desplegar y escalar aplicaciones web a partir de su código. Se encarga del aprovisionamiento de recursos, el equilibrio de carga, el escalado y la supervisión de la aplicación.',
+        hint: 'Subes el código de una aplicación web y el servicio prepara y administra su entorno de despliegue.',
+        explanation: 'Elastic Beanstalk facilita el despliegue de aplicaciones web y administra su entorno. Por ejemplo, permite publicar una aplicación Python, Java o .NET y ajustar su capacidad.',
+        source: 'https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/Welcome.html'
+      },
+      {
+        id: 'lambda',
+        category: 'compute',
+        name: 'AWS Lambda',
+        longName: '',
+        definition: 'Ejecuta código en funciones sin aprovisionar ni administrar servidores. Las funciones pueden responder a eventos, como una solicitud web, un archivo subido o una tarea programada.',
+        hint: 'Piensa en una función que se ejecuta cuando ocurre un evento, como la subida de una imagen.',
+        explanation: 'Lambda ejecuta funciones sin que tengas que administrar servidores. Por ejemplo, puede crear una miniatura cada vez que se sube una imagen a Amazon S3.',
+        source: 'https://docs.aws.amazon.com/lambda/latest/dg/welcome.html'
+      },
+      {
+        id: 'eks',
+        category: 'compute',
+        name: 'Amazon EKS',
+        longName: 'Elastic Kubernetes Service',
+        definition: 'Servicio administrado de Kubernetes que facilita desplegar, administrar y escalar aplicaciones en contenedores. AWS se encarga de gestionar el plano de control del clúster.',
+        hint: 'La palabra clave es Kubernetes: busca su servicio administrado en AWS.',
+        explanation: 'EKS permite ejecutar aplicaciones en contenedores con Kubernetes. AWS administra el plano de control, y puedes elegir distintas opciones para ejecutar las cargas de trabajo.',
+        source: 'https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html'
+      },
+      {
+        id: 'fargate',
+        category: 'compute',
+        name: 'AWS Fargate',
+        longName: '',
+        definition: 'Motor de cómputo sin servidor para ejecutar contenedores con Amazon ECS o Amazon EKS. Proporciona la capacidad necesaria sin tener que aprovisionar ni administrar los servidores subyacentes.',
+        hint: 'Piensa en la capacidad que ejecuta los contenedores mientras AWS se ocupa de los servidores.',
+        explanation: 'Fargate proporciona capacidad de cómputo para contenedores de ECS o EKS. Tú defines la aplicación y los recursos que necesita; AWS administra los servidores que la ejecutan.',
+        source: 'https://aws.amazon.com/fargate/'
+      },
+      {
+        id: 's3',
+        category: 'storage',
+        name: 'Amazon S3',
+        longName: 'Simple Storage Service',
+        definition: 'Almacenamiento de objetos escalable para guardar y proteger archivos, imágenes, copias de seguridad y datos de aplicaciones.',
+        hint: 'La palabra clave es «objetos»: cada dato se guarda como un objeto dentro de un bucket.',
+        explanation: 'S3 guarda objetos en buckets. Es útil para imágenes de una web, copias de seguridad y datos de aplicaciones.',
+        source: 'https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html'
+      },
+      {
+        id: 'ebs',
+        category: 'storage',
+        name: 'Amazon EBS',
+        longName: 'Elastic Block Store',
+        definition: 'Almacenamiento en bloques de alto rendimiento para conectarlo a instancias EC2. Adecuado para discos de sistema, bases de datos y aplicaciones con operaciones frecuentes de lectura y escritura.',
+        hint: 'Piensa en el disco de una máquina virtual EC2: organiza la información en bloques.',
+        explanation: 'EBS ofrece volúmenes de bloques para instancias EC2, como el disco del sistema operativo o de una base de datos.',
+        source: 'https://docs.aws.amazon.com/ebs/latest/userguide/what-is-ebs.html'
+      },
+      {
+        id: 'efs',
+        category: 'storage',
+        name: 'Amazon EFS',
+        longName: 'Elastic File System',
+        definition: 'Sistema de archivos compartido, elástico y administrado, accesible mediante NFS. Su capacidad aumenta o disminuye automáticamente al añadir o eliminar archivos.',
+        hint: 'Piensa en varios equipos que necesitan acceder a los mismos archivos mediante NFS.',
+        explanation: 'EFS proporciona un sistema de archivos compartido mediante NFS. Crece y se reduce automáticamente con los archivos almacenados.',
+        source: 'https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html'
+      },
+      {
+        id: 'glacier',
+        category: 'storage',
+        name: 'Amazon S3 Glacier',
+        longName: 'Clases de almacenamiento para archivado',
+        definition: 'Clases de almacenamiento de objetos para archivar datos de acceso poco frecuente a bajo coste. Según la clase elegida, la recuperación puede ser inmediata o requerir espera.',
+        hint: 'Piensa en conservar archivos durante mucho tiempo, con pocas consultas y reduciendo el coste de almacenamiento.',
+        explanation: 'Las clases S3 Glacier permiten archivar objetos a bajo coste. Ofrecen distintas opciones de recuperación, desde acceso inmediato hasta esperas de horas.',
+        source: 'https://aws.amazon.com/s3/storage-classes/glacier/'
+      },
+      {
+        id: 'rds',
+        category: 'database',
+        name: 'Amazon RDS',
+        longName: 'Relational Database Service',
+        definition: 'Servicio administrado que permite crear y gestionar bases de datos relacionales con distintos motores, como MySQL, PostgreSQL u Oracle. Automatiza tareas como el aprovisionamiento, los parches y las copias de seguridad.',
+        hint: 'No es un solo motor: reúne varias opciones de bases de datos relacionales y facilita su administración.',
+        explanation: 'RDS facilita la gestión de bases de datos relacionales con distintos motores y automatiza tareas de administración, como parches y copias de seguridad.',
+        source: 'https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/Welcome.html'
+      },
+      {
+        id: 'aurora',
+        category: 'database',
+        name: 'Amazon Aurora',
+        longName: '',
+        definition: 'Motor de base de datos relacional desarrollado por AWS, compatible con MySQL y PostgreSQL y diseñado para la nube. Su almacenamiento distribuido crece automáticamente y ofrece funciones de replicación y alta disponibilidad.',
+        hint: 'Es un motor desarrollado por AWS con compatibilidad con MySQL y PostgreSQL.',
+        explanation: 'Aurora es un motor relacional de AWS compatible con MySQL y PostgreSQL. Forma parte de Amazon RDS y está diseñado para ofrecer rendimiento y alta disponibilidad.',
+        source: 'https://docs.aws.amazon.com/es_es/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html'
+      },
+      {
+        id: 'redshift',
+        category: 'database',
+        name: 'Amazon Redshift',
+        longName: '',
+        definition: 'Almacén de datos orientado al análisis de grandes volúmenes de información mediante consultas SQL. Permite elaborar informes y analizar datos de varios petabytes, incluidos datos de Amazon S3 mediante consultas externas.',
+        hint: 'Piensa en un almacén de datos para estudiar mucha información y elaborar informes mediante SQL.',
+        explanation: 'Redshift es un almacén de datos para análisis a gran escala con SQL. También permite consultar datos de Amazon S3 mediante consultas externas.',
+        source: 'https://docs.aws.amazon.com/es_es/redshift/latest/mgmt/welcome.html'
+      },
+      {
+        id: 'dynamodb',
+        category: 'database',
+        name: 'Amazon DynamoDB',
+        longName: '',
+        definition: 'Base de datos NoSQL administrada y sin servidor, con modelos de clave-valor y documentos. Está diseñada para aplicaciones que necesitan escalar y realizar lecturas y escrituras con tiempos de respuesta de milisegundos.',
+        hint: 'NoSQL, clave-valor y documentos: busca una alternativa a las bases de datos relacionales.',
+        explanation: 'DynamoDB almacena datos NoSQL de clave-valor y documentos. Es administrada y sin servidor, y está diseñada para escalar con respuestas de milisegundos.',
+        source: 'https://docs.aws.amazon.com/es_es/amazondynamodb/latest/developerguide/Introduction.html'
+      }
+    ];
+
+    const byId = Object.fromEntries(SERVICES.map(service => [service.id, service]));
+    const ui = {
+      services: document.getElementById('service-list'),
+      definitions: document.getElementById('definition-list'),
+      instructions: document.getElementById('instructions'),
+      matched: document.getElementById('matched-value'),
+      attempts: document.getElementById('attempts-value'),
+      score: document.getElementById('score-value'),
+      time: document.getElementById('time-value'),
+      progress: document.getElementById('progress-fill'),
+      feedback: document.getElementById('feedback'),
+      feedbackIcon: document.getElementById('feedback-icon'),
+      feedbackText: document.getElementById('feedback-text'),
+      hint: document.getElementById('hint-button'),
+      hintCount: document.getElementById('hint-count'),
+      result: document.getElementById('result'),
+      resultSummary: document.getElementById('result-summary'),
+      review: document.getElementById('review-grid'),
+      sourceList: document.getElementById('source-list'),
+      modeButtons: Array.from(document.querySelectorAll('[data-mode]')),
+      categoryButtons: Array.from(document.querySelectorAll('[data-category]')),
+      total: document.getElementById('pairs-total'),
+      roundLabel: document.getElementById('round-label'),
+      continue: document.getElementById('continue-button')
+    };
+
+    let mode = 'match';
+    let category = 'all';
+    let state;
+    let timerId = null;
+    let mismatchId = null;
+    let finishId = null;
+
+    function escHtml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[character]));
+    }
+
+    function shuffled(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function formatTime(milliseconds) {
+      const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+      return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    }
+
+    function elapsedTime() {
+      return state.startedAt === null ? 0 : (state.finishedAt ?? performance.now()) - state.startedAt;
+    }
+
+    function startTimer() {
+      if (state.startedAt !== null) return;
+      state.startedAt = performance.now();
+      timerId = window.setInterval(() => { ui.time.textContent = formatTime(elapsedTime()); }, 250);
+    }
+
+    function activeServices() {
+      return category === 'all' ? SERVICES : SERVICES.filter(service => service.category === category);
+    }
+
+    function score() {
+      return Math.max(0, state.matched.size * 100 - state.errors * 10 - state.hints.size * 15);
+    }
+
+    function setFeedback(message, tone = 'neutral') {
+      ui.feedback.dataset.tone = tone;
+      ui.feedbackIcon.textContent = ({neutral: '↗', success: '✓', error: '×', hint: 'i'})[tone];
+      ui.feedbackText.textContent = message;
+    }
+
+    function updateStats() {
+      ui.matched.textContent = state.matched.size;
+      ui.attempts.textContent = state.attempts;
+      ui.score.textContent = score();
+      ui.progress.style.width = `${state.matched.size / activeServices().length * 100}%`;
+      ui.hintCount.textContent = `Pistas usadas: ${state.hints.size}.`;
+      ui.hint.disabled = state.locked || state.matched.size === activeServices().length;
+    }
+
+    function definitionHtml(service, matched) {
+      return `<span class="definition-content">${matched ? `<span class="definition-match">✓ ${escHtml(service.name)}</span>` : ''}<span class="definition-text">${escHtml(service.definition)}</span></span>`;
+    }
+
+    function renderBoard() {
+      ui.services.innerHTML = state.serviceOrder.map(id => {
+        const service = byId[id];
+        return `<button type="button" class="card service-card" data-id="${escHtml(id)}" data-side="service" aria-pressed="false"><span class="service-content"><span class="service-name">${escHtml(service.name)}</span><span class="service-long">${escHtml(service.longName)}</span></span></button>`;
+      }).join('');
+      ui.definitions.innerHTML = state.definitionOrder.map((id, position) => `<button type="button" class="card definition-card" data-id="${escHtml(id)}" data-side="definition" data-position="${position + 1}" aria-pressed="false"></button>`).join('');
+      updateCards();
+    }
+
+    function updateCards() {
+      const serviceCards = ui.services.querySelectorAll('button');
+      const definitionCards = ui.definitions.querySelectorAll('button');
+      for (const button of serviceCards) {
+        const id = button.dataset.id;
+        const matched = state.matched.has(id);
+        const selected = state.selectedService === id;
+        button.disabled = matched;
+        button.classList.toggle('is-selected', selected && !matched);
+        button.classList.toggle('is-matched', matched);
+        button.classList.toggle('is-wrong', selected && state.locked);
+        button.setAttribute('aria-pressed', String(selected));
+        button.setAttribute('aria-label', `${byId[id].name}${byId[id].longName ? '. ' + byId[id].longName : ''}.${matched ? ' Pareja encontrada.' : ''}`);
+        let matchLabel = button.querySelector('.service-match');
+        if (matched && !matchLabel) {
+          matchLabel = document.createElement('span');
+          matchLabel.className = 'service-match';
+          matchLabel.textContent = 'Pareja encontrada';
+          button.querySelector('.service-content').appendChild(matchLabel);
+        }
+      }
+      for (const button of definitionCards) {
+        const id = button.dataset.id;
+        const matched = state.matched.has(id);
+        const selected = state.selectedDefinition === id;
+        const concealed = mode === 'memory' && !selected && !matched;
+        button.disabled = matched;
+        button.classList.toggle('is-selected', selected && !matched);
+        button.classList.toggle('is-matched', matched);
+        button.classList.toggle('is-wrong', selected && state.locked);
+        button.classList.toggle('is-concealed', concealed);
+        button.setAttribute('aria-pressed', String(selected));
+        if (concealed) {
+          button.innerHTML = '<span class="concealed"><span class="concealed-icon" aria-hidden="true">?</span><span><strong>Definición oculta</strong><small>Pulsa para descubrirla</small></span></span>';
+          button.setAttribute('aria-label', `Definición oculta ${button.dataset.position}. Pulsa para descubrirla.`);
+        } else {
+          button.innerHTML = definitionHtml(byId[id], matched);
+          button.setAttribute('aria-label', `${matched ? `Pareja encontrada: ${byId[id].name}. ` : ''}${byId[id].definition}`);
+        }
+      }
+    }
+
+    function chooseCard(button) {
+      if (state.locked || state.finishedAt !== null || button.disabled) return;
+      const side = button.dataset.side;
+      const id = button.dataset.id;
+      if (mode === 'memory' && side === 'definition' && !state.selectedService) {
+        setFeedback('En modo memoria, elige primero un servicio y después destapa una definición.');
+        return;
+      }
+      startTimer();
+      const key = side === 'service' ? 'selectedService' : 'selectedDefinition';
+      state[key] = state[key] === id ? null : id;
+      updateCards();
+      if (state.selectedService && state.selectedDefinition) {
+        checkPair();
+      } else if (state.selectedService) {
+        setFeedback(`${byId[state.selectedService].name} seleccionado. Busca su definición o pide una pista.`);
+      } else if (state.selectedDefinition) {
+        setFeedback('Definición seleccionada. ¿A qué servicio corresponde?');
+      } else {
+        setFeedback('Selección retirada. Elige una nueva tarjeta.');
+      }
+    }
+
+    function checkPair() {
+      state.attempts += 1;
+      if (state.selectedService === state.selectedDefinition) {
+        const id = state.selectedService;
+        state.matched.add(id);
+        state.selectedService = null;
+        state.selectedDefinition = null;
+        updateCards();
+        updateStats();
+        setFeedback(`¡Correcto! +100 puntos. ${byId[id].explanation}`, 'success');
+        if (state.matched.size === activeServices().length) finishGame();
+      } else {
+        state.errors += 1;
+        state.locked = true;
+        updateCards();
+        updateStats();
+        setFeedback(mode === 'memory'
+          ? 'Estas tarjetas no forman pareja. −10 puntos. Lee la definición y recuerda dónde está. Pulsa Continuar cuando quieras volver a intentarlo.'
+          : 'Estas tarjetas no forman pareja. −10 puntos. Fíjate en la función de cada servicio y vuelve a intentarlo.', 'error');
+        if (mode === 'memory') {
+          ui.continue.hidden = false;
+        } else {
+          mismatchId = window.setTimeout(clearMismatch, 1200);
+        }
+      }
+    }
+
+    function clearMismatch() {
+      state.locked = false;
+      state.selectedService = null;
+      state.selectedDefinition = null;
+      mismatchId = null;
+      ui.continue.hidden = true;
+      updateCards();
+      updateStats();
+      setFeedback('Puedes probar otra pareja. Cada intento te ayuda a distinguir los servicios.');
+    }
+
+    function requestHint() {
+      if (state.locked || state.finishedAt !== null) return;
+      const id = state.selectedService;
+      if (!id) {
+        setFeedback('Selecciona primero un servicio para ver su pista. Todavía no se ha descontado ningún punto.', 'hint');
+        return;
+      }
+      startTimer();
+      const used = state.hints.has(id);
+      state.hints.add(id);
+      updateStats();
+      setFeedback(`${used ? 'Pista ya consultada; sin descuento adicional.' : 'Pista nueva: −15 puntos.'} ${byId[id].hint}`, 'hint');
+    }
+
+    function finishGame() {
+      state.finishedAt = performance.now();
+      window.clearInterval(timerId);
+      timerId = null;
+      ui.time.textContent = formatTime(elapsedTime());
+      ui.resultSummary.textContent = `${score()} puntos · ${state.attempts} intentos · ${state.errors} ${state.errors === 1 ? 'error' : 'errores'} · ${state.hints.size} ${state.hints.size === 1 ? 'pista' : 'pistas'} · ${formatTime(elapsedTime())}. Repasa las ideas clave y vuelve a jugar para afianzarlas.`;
+      ui.review.innerHTML = activeServices().map(service => `<article class="review-card"><h3>${escHtml(service.name)}</h3><p>${escHtml(service.explanation)}</p></article>`).join('');
+      ui.result.hidden = false;
+      updateStats();
+      setFeedback(`¡Reto completado! Has encontrado las ${activeServices().length} parejas y conseguido ${score()} puntos.`, 'success');
+      finishId = window.setTimeout(() => {
+        ui.result.focus({preventScroll: true});
+        ui.result.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'});
+        finishId = null;
+      }, 200);
+    }
+
+    function newGame(announce = true) {
+      window.clearInterval(timerId);
+      window.clearTimeout(mismatchId);
+      window.clearTimeout(finishId);
+      timerId = null;
+      mismatchId = null;
+      finishId = null;
+      state = {
+        serviceOrder: shuffled(activeServices().map(service => service.id)),
+        definitionOrder: shuffled(activeServices().map(service => service.id)),
+        selectedService: null,
+        selectedDefinition: null,
+        matched: new Set(),
+        hints: new Set(),
+        attempts: 0,
+        errors: 0,
+        startedAt: null,
+        finishedAt: null,
+        locked: false
+      };
+      ui.modeButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+      ui.categoryButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.category === category)));
+      ui.total.textContent = activeServices().length;
+      ui.roundLabel.textContent = `${activeServices().length} parejas · sin límite de tiempo`;
+      ui.continue.hidden = true;
+      ui.instructions.innerHTML = mode === 'memory'
+        ? '<strong>Modo memoria:</strong> elige primero un servicio y después destapa una definición. Si fallas, léela y pulsa Continuar para volver a ocultarla. Cambiar el modo o los servicios inicia una partida nueva.'
+        : '<strong>Cómo jugar:</strong> pulsa un servicio y su definición, en el orden que prefieras. Puedes cambiar la selección antes de formar la pareja.';
+      ui.result.hidden = true;
+      ui.time.textContent = '00:00';
+      renderBoard();
+      updateStats();
+      setFeedback(announce ? `Nueva partida. Las tarjetas se han mezclado. ¡Encuentra las ${activeServices().length} parejas!` : 'Todo preparado. Selecciona una tarjeta para empezar.');
+    }
+
+    for (const list of [ui.services, ui.definitions]) {
+      list.addEventListener('click', event => {
+        const button = event.target.closest('button[data-id]');
+        if (button && list.contains(button)) chooseCard(button);
+      });
+    }
+    ui.hint.addEventListener('click', requestHint);
+    ui.continue.addEventListener('click', () => {
+      const previousService = state.selectedService;
+      clearMismatch();
+      const previousButton = Array.from(ui.services.querySelectorAll('button')).find(button => button.dataset.id === previousService);
+      if (previousButton) previousButton.focus({preventScroll: true});
+    });
+    ui.categoryButtons.forEach(button => {
+      const count = button.dataset.category === 'all' ? SERVICES.length : SERVICES.filter(service => service.category === button.dataset.category).length;
+      button.textContent = `${button.dataset.label} (${count})`;
+      button.addEventListener('click', () => {
+        if (button.dataset.category === category) return;
+        category = button.dataset.category;
+        newGame();
+      });
+    });
+    document.getElementById('restart-button').addEventListener('click', () => newGame());
+    document.getElementById('play-again-button').addEventListener('click', () => {
+      newGame();
+      ui.services.querySelector('button').focus();
+    });
+    ui.modeButtons.forEach(button => button.addEventListener('click', () => {
+      if (button.dataset.mode === mode) return;
+      mode = button.dataset.mode;
+      newGame();
+    }));
+    ui.sourceList.innerHTML = SERVICES.map(service => `<li><a href="${escHtml(service.source)}" target="_blank" rel="noopener noreferrer">${escHtml(service.name)} · documentación oficial</a></li>`).join('');
+    newGame(false);
+  </script>
+</body>
+</html>
